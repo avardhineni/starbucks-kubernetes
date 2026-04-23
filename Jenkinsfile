@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs 'node17'
+    }
+
     environment {
         SONAR_SCANNER = tool 'sonar-scanner'
     }
@@ -8,6 +12,8 @@ pipeline {
     stages {
         stage('Build') {
             steps {
+                sh 'node -v'
+                sh 'npm -v'
                 sh 'npm install'
             }
         }
