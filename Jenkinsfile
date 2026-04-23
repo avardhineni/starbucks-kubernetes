@@ -6,12 +6,6 @@ pipeline {
     }
 
     stages {
-        stage('Clone') {
-            steps {
-                git 'https://github.com/avardhineni/starbucks-kubernetes.git'
-            }
-        }
-
         stage('Build') {
             steps {
                 sh 'npm install'
