@@ -1,16 +1,34 @@
 pipeline {
     agent any
 
+    environment {
+        SONAR_SCANNER = tool 'sonar-scanner'
+    }
+
     stages {
         stage('Clone') {
             steps {
-                echo 'Cloning repo...'
+                git 'https://github.com/avardhineni/starbucks-kubernetes.git'
             }
         }
 
         stage('Build') {
             steps {
-                echo 'Build step running...'
+                sh 'npm install'
+            }
+        }
+
+        stage('SonarQube Scan') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh """
+                        ${SONAR_SCANNER}/bin/sonar-scanner \
+                          -Dsonar.projectKey=starbucks-kubernetes \
+                          -Dsonar.projectName=starbucks-kubernetes \
+                          -Dsonar.sources=. \
+                          -Dsonar.host.url=${SONAR_HOST_URL}
+                    """
+                }
             }
         }
     }
