@@ -187,28 +187,22 @@ EOF
 
     post {
         always {
+            echo "📧 Sending pipeline email notification..."
+
+            emailext(
+                subject: "Build ${currentBuild.currentResult}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+                    <p>This is a Jenkins Starbucks CI/CD pipeline status.</p>
+                    <p><b>Project:</b> ${env.JOB_NAME}</p>
+                    <p><b>Build Number:</b> ${env.BUILD_NUMBER}</p>
+                    <p><b>Build Status:</b> ${currentBuild.currentResult}</p>
+                    <p><b>Build URL:</b> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                """,
+                to: 'avardhineni7@gmail.com',
+                mimeType: 'text/html'
+            )
+
             sh 'docker logout || true'
-
-            script {
-                def buildStatus = currentBuild.currentResult
-                def buildUser = currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause')[0]?.userId ?: 'Github User'
-
-                emailext(
-                    subject: "Pipeline ${buildStatus}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                    body: """
-                        <p>This is a Jenkins Starbucks CI/CD pipeline status.</p>
-                        <p>Project: ${env.JOB_NAME}</p>
-                        <p>Build Number: ${env.BUILD_NUMBER}</p>
-                        <p>Build Status: ${buildStatus}</p>
-                        <p>Started by: ${buildUser}</p>
-                        <p>Build URL: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
-                    """,
-                    to: 'avardhineni7@gmail.com',
-                    from: 'avardhineni7@gmail.com',
-                    replyTo: 'avardhineni7@gmail.com',
-                    mimeType: 'text/html'
-                )
-            }
         }
     }
 }
