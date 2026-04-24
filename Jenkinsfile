@@ -79,11 +79,11 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    sh """
+                    sh '''
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                         docker push ${DOCKER_IMAGE}:${IMAGE_TAG}
                         docker push ${DOCKER_IMAGE}:latest
-                    """
+                    '''
                 }
             }
         }
@@ -159,10 +159,23 @@ EOF
         stage('Deploy to Minikube') {
             steps {
                 sh """
-                    docker exec minikube mkdir -p /tmp/starbucks-k8s
-                    docker cp k8s-generated/. minikube:/tmp/starbucks-k8s
+                    echo "Checking generated files:"
+                    ls -la k8s-generated
 
-                    docker exec minikube sh -c '${KUBECTL} apply -f /tmp/starbucks-k8s'
+                    docker exec minikube rm -rf /tmp/starbucks-k8s
+                    docker exec minikube mkdir -p /tmp/starbucks-k8s
+
+                    docker cp k8s-generated/deployment.yaml minikube:/tmp/starbucks-k8s/deployment.yaml
+                    docker cp k8s-generated/service.yaml minikube:/tmp/starbucks-k8s/service.yaml
+                    docker cp k8s-generated/ingress.yaml minikube:/tmp/starbucks-k8s/ingress.yaml
+
+                    echo "Files copied to Minikube:"
+                    docker exec minikube sh -c "ls -la /tmp/starbucks-k8s"
+
+                    docker exec minikube sh -c '${KUBECTL} apply -f /tmp/starbucks-k8s/deployment.yaml'
+                    docker exec minikube sh -c '${KUBECTL} apply -f /tmp/starbucks-k8s/service.yaml'
+                    docker exec minikube sh -c '${KUBECTL} apply -f /tmp/starbucks-k8s/ingress.yaml'
+
                     docker exec minikube sh -c '${KUBECTL} rollout status deployment/${K8S_APP_NAME} -n ${K8S_NAMESPACE}'
                     docker exec minikube sh -c '${KUBECTL} get pods,svc,ingress -n ${K8S_NAMESPACE}'
                 """
