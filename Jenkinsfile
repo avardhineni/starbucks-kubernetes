@@ -7,7 +7,7 @@ pipeline {
 
     environment {
         SONAR_SCANNER = tool 'sonar-scanner'
-        DOCKER_IMAGE = "avardhineni/starbucks-kubernetes"
+        DOCKER_IMAGE = "avardhineni7/starbucks-kubernetes"
         IMAGE_TAG = "${BUILD_NUMBER}"
         K8S_APP_NAME = "starbucks-app"
         K8S_NAMESPACE = "default"
