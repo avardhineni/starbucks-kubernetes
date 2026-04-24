@@ -7,14 +7,19 @@ pipeline {
 
     environment {
         SONAR_SCANNER = tool 'sonar-scanner'
+
         DOCKER_IMAGE = "avardhineni7/starbucks-kubernetes"
         IMAGE_TAG = "${BUILD_NUMBER}"
+
         K8S_APP_NAME = "starbucks-app"
         K8S_NAMESPACE = "default"
+
+        // IMPORTANT: your working kubectl path
         KUBECTL = "/var/lib/minikube/binaries/v1.35.1/kubectl --kubeconfig=/var/lib/minikube/kubeconfig"
     }
 
     stages {
+
         stage('Clean Workspace') {
             steps {
                 cleanWs()
@@ -54,10 +59,10 @@ pipeline {
                 withSonarQubeEnv('SonarQube') {
                     sh """
                         ${SONAR_SCANNER}/bin/sonar-scanner \
-                          -Dsonar.projectKey=starbucks-kubernetes \
-                          -Dsonar.projectName=starbucks-kubernetes \
-                          -Dsonar.sources=. \
-                          -Dsonar.host.url=${SONAR_HOST_URL}
+                        -Dsonar.projectKey=starbucks-kubernetes \
+                        -Dsonar.projectName=starbucks-kubernetes \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=${SONAR_HOST_URL}
                     """
                 }
             }
@@ -79,11 +84,11 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    sh '''
+                    sh """
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                         docker push ${DOCKER_IMAGE}:${IMAGE_TAG}
                         docker push ${DOCKER_IMAGE}:latest
-                    '''
+                    """
                 }
             }
         }
@@ -162,21 +167,19 @@ EOF
                     echo "Checking generated files:"
                     ls -la k8s-generated
 
-                    docker exec minikube rm -rf /tmp/starbucks-k8s
-                    docker exec minikube mkdir -p /tmp/starbucks-k8s
+                    echo "Applying deployment.yaml"
+                    docker exec -i minikube sh -c '${KUBECTL} apply -f -' < k8s-generated/deployment.yaml
 
-                    docker cp k8s-generated/deployment.yaml minikube:/tmp/starbucks-k8s/deployment.yaml
-                    docker cp k8s-generated/service.yaml minikube:/tmp/starbucks-k8s/service.yaml
-                    docker cp k8s-generated/ingress.yaml minikube:/tmp/starbucks-k8s/ingress.yaml
+                    echo "Applying service.yaml"
+                    docker exec -i minikube sh -c '${KUBECTL} apply -f -' < k8s-generated/service.yaml
 
-                    echo "Files copied to Minikube:"
-                    docker exec minikube sh -c "ls -la /tmp/starbucks-k8s"
+                    echo "Applying ingress.yaml"
+                    docker exec -i minikube sh -c '${KUBECTL} apply -f -' < k8s-generated/ingress.yaml
 
-                    docker exec minikube sh -c '${KUBECTL} apply -f /tmp/starbucks-k8s/deployment.yaml'
-                    docker exec minikube sh -c '${KUBECTL} apply -f /tmp/starbucks-k8s/service.yaml'
-                    docker exec minikube sh -c '${KUBECTL} apply -f /tmp/starbucks-k8s/ingress.yaml'
-
+                    echo "Waiting for rollout..."
                     docker exec minikube sh -c '${KUBECTL} rollout status deployment/${K8S_APP_NAME} -n ${K8S_NAMESPACE}'
+
+                    echo "Final status:"
                     docker exec minikube sh -c '${KUBECTL} get pods,svc,ingress -n ${K8S_NAMESPACE}'
                 """
             }
